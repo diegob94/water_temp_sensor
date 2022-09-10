@@ -22,7 +22,7 @@ char serial_command_buffer_[64];
 char rh_buf[64];
 
 WebServer server(80);
-HardwareSerial SerialPort(1);
+HardwareSerial SerialPort(2);
 RH_RF95<HardwareSerial> driver(SerialPort);
 RHReliableDatagram manager(driver, rh_server_address);
 SerialCommand cmd_ssid_("ssid", cmd_ssid);
@@ -150,7 +150,7 @@ void reconnect_wifi(){
 void setup(){
     Serial.begin(9600);
     Serial.println();
-    Serial.println("Water sensor server init");
+    Serial.println("Water sensor server setup start");
     Serial.println();
     SerialPort.setPins(16,17);
     EEPROM.begin(sizeof(ssid)+sizeof(password));
@@ -162,10 +162,12 @@ void setup(){
     reconnect_wifi();
     server.on("/", handle_temp);
     server.onNotFound(handle_NotFound);
-    if (!manager.init()) {
+    if (manager.init()) {
+        Serial.println("RH ready");
+    } else {
         Serial.println("RH init failed");
     }
-    Serial.println("Init done!");
+    Serial.println("Setup done!");
 }
 
 void loop(){

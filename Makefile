@@ -1,6 +1,3 @@
-#!/bin/bash
-
-set -e -v
 
 #curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=~/.local/bin sh
 
@@ -12,12 +9,18 @@ set -e -v
 #arduino-cli lib install --git-url https://github.com/Seeed-Studio/Grove_LoRa_433MHz_and_915MHz_RF.git
 #sed -i '/<util\/atomic.h>/ s/<util\/atomic.h>/<RHutil\/atomic.h>/' ~/Arduino/libraries/Grove_LoRa_433MHz_and_915MHz_RF/RadioHead.h
 
-#arduino-cli compile --fqbn SparkFun:avr:promicro client
-#
-#arduino-cli upload -p /dev/ttyUSB0 --fqbn SparkFun:avr:promicro client -P buspirate
+.PHONY: all
+all:
+	@echo nothing to do
 
-arduino-cli compile --fqbn esp32:esp32:nodemcu-32s server
+.PHONY: client
+client:
+	arduino-cli compile --fqbn SparkFun:avr:promicro client
+	arduino-cli upload -p /dev/ttyUSB1 --fqbn SparkFun:avr:promicro client -P buspirate
 
-arduino-cli upload --fqbn esp32:esp32:nodemcu-32s --port=/dev/ttyUSB0 server
+.PHONY: server
+server:
+	arduino-cli compile --fqbn esp32:esp32:nodemcu-32s server
+	arduino-cli upload --fqbn esp32:esp32:nodemcu-32s --port=/dev/ttyUSB0 server
 
 #arduino-cli monitor --port=/dev/ttyUSB0
