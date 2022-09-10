@@ -1,13 +1,56 @@
 #include <SerialCommands.h>
 #include <EEPROM.h>
 #include <WiFi.h>
+#include <WebServer.h>
+#include <RHReliableDatagram.h>
+#include <RH_RF95.h>
+#include <HardwareSerial.h>
 
-bool wifi_connected;
+void cmd_ssid(SerialCommands*);
+void cmd_password(SerialCommands*);
+
+const int rh_server_address = 1;
+const int rh_client_address = 2;
+bool server_started = false;
+bool wifi_connected = false;
 TaskHandle_t wifi_task_handle = NULL;
-WiFiServer server(80);
-
+int8_t water_temp = 30;
+int8_t ambient_temp = 20;
 char ssid[32];
 char password[32];
+char serial_command_buffer_[64];
+char rh_buf[64];
+
+WebServer server(80);
+HardwareSerial SerialPort(1);
+RH_RF95<HardwareSerial> driver(SerialPort);
+RHReliableDatagram manager(driver, rh_server_address);
+SerialCommand cmd_ssid_("ssid", cmd_ssid);
+SerialCommand cmd_password_("password", cmd_password);
+SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
+
+void handle_NotFound() {
+  server.send(404, "text/plain", "404 not found");
+}
+
+void handle_temp() {
+  Serial.println("Received /temp request");
+  server.send(200, "text/html", SendHTML(ambient_temp,water_temp));
+}
+
+String SendHTML(int8_t ambient_temp, int8_t water_temp) {
+  String ptr = "<!DOCTYPE html> <html>\n";
+  ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+  ptr += "<title>Water temperature sensor</title>\n";
+  ptr += "</head>\n";
+  ptr += "<body>\n";
+  ptr += "<h1>Temperature sensor readings:</h1>\n";
+  ptr += "<pre>Ambient temperature [C] : " + String(ambient_temp) + "</pre>\n";
+  ptr += "<pre>Water temperature   [C] : " + String(water_temp) + "</pre>\n";
+  ptr += "</body>\n";
+  ptr += "</html>\n";
+  return ptr;
+}
 
 void writeEEPROM(int offset, char * str, size_t len) {
     int i;
@@ -48,8 +91,6 @@ void cmd_ssid(SerialCommands* sender){
     Serial.println();
 }
 
-SerialCommand cmd_ssid_("ssid", cmd_ssid);
-
 void cmd_password(SerialCommands* sender){
 	//Do not use Serial.Print!
 	//Use sender->GetSerial this allows sharing the callback method with multiple Serial Ports
@@ -69,11 +110,6 @@ void cmd_password(SerialCommands* sender){
     Serial.println();
     reconnect_wifi();
 }
-
-SerialCommand cmd_password_("password", cmd_password);
-
-char serial_command_buffer_[64];
-SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
 
 void cmd_unrecognized(SerialCommands* sender, const char* cmd){
 	sender->GetSerial()->print("ERROR: Unrecognized command [");
@@ -112,26 +148,46 @@ void reconnect_wifi(){
 }
 
 void setup(){
-    EEPROM.begin(sizeof(ssid)+sizeof(password));
     Serial.begin(9600);
+    Serial.println();
+    Serial.println("Water sensor server init");
+    Serial.println();
+    SerialPort.setPins(16,17);
+    EEPROM.begin(sizeof(ssid)+sizeof(password));
     serial_commands_.AddCommand(&cmd_ssid_);
     serial_commands_.AddCommand(&cmd_password_);
  	serial_commands_.SetDefaultHandler(&cmd_unrecognized);
     readEEPROM(0,ssid,sizeof(ssid));
     readEEPROM(1,password,sizeof(password));
-    Serial.println();
-    Serial.println("Water temperature server init");
-    Serial.println();
     reconnect_wifi();
-    Serial.println("Ready!");
+    server.on("/", handle_temp);
+    server.onNotFound(handle_NotFound);
+    if (!manager.init()) {
+        Serial.println("RH init failed");
+    }
+    Serial.println("Init done!");
 }
 
 void loop(){
 	serial_commands_.ReadSerial();
     if(wifi_connected){
         server.begin();
+        Serial.println("HTTP server running on port 80");
+        server_started = true;
         wifi_connected = false;
     }
-
+    if(server_started){
+        server.handleClient();
+    }
+    if (manager.available()) {
+        uint8_t len = sizeof(rh_buf);
+        uint8_t from;
+        if (manager.recvfromAck((uint8_t*)rh_buf, &len, &from)) {
+            Serial.print("got request from : 0x");
+            Serial.print(from, HEX);
+            Serial.print(": ");
+            Serial.println((char*)rh_buf);
+        }
+    }
 }
 
