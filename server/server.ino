@@ -8,9 +8,11 @@
 
 void cmd_ssid(SerialCommands*);
 void cmd_password(SerialCommands*);
+void cmd_status(SerialCommands*);
 
 const int rh_server_address = 1;
 const int rh_client_address = 2;
+const int port = 80;
 bool server_started = false;
 bool wifi_connected = false;
 TaskHandle_t wifi_task_handle = NULL;
@@ -21,35 +23,48 @@ char password[32];
 char serial_command_buffer_[64];
 char rh_buf[64];
 
-WebServer server(80);
+WebServer server(port);
 HardwareSerial SerialPort(2);
 RH_RF95<HardwareSerial> driver(SerialPort);
 RHReliableDatagram manager(driver, rh_server_address);
 SerialCommand cmd_ssid_("ssid", cmd_ssid);
 SerialCommand cmd_password_("password", cmd_password);
+SerialCommand cmd_status_("status", cmd_status);
 SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
 
 void handle_NotFound() {
-  server.send(404, "text/plain", "404 not found");
+    server.send(404, "text/plain", "404 not found");
 }
 
 void handle_temp() {
-  Serial.println("Received /temp request");
-  server.send(200, "text/html", SendHTML(ambient_temp,water_temp));
+    Serial.println("Received /temp HTTP request");
+    server.send(200, "text/html", SendHTML(ambient_temp,water_temp));
 }
 
 String SendHTML(int8_t ambient_temp, int8_t water_temp) {
-  String ptr = "<!DOCTYPE html> <html>\n";
-  ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-  ptr += "<title>Water temperature sensor</title>\n";
-  ptr += "</head>\n";
-  ptr += "<body>\n";
-  ptr += "<h1>Temperature sensor readings:</h1>\n";
-  ptr += "<pre>Ambient temperature [C] : " + String(ambient_temp) + "</pre>\n";
-  ptr += "<pre>Water temperature   [C] : " + String(water_temp) + "</pre>\n";
-  ptr += "</body>\n";
-  ptr += "</html>\n";
-  return ptr;
+    String ptr = "<!DOCTYPE html> <html>\n";
+    ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
+    ptr += "<title>Water temperature sensor</title>\n";
+    ptr += "</head>\n";
+    ptr += "<body>\n";
+    ptr += "<div id=\"div1\">\n";
+    ptr += "<h1>Temperature sensor readings:</h1>\n";
+    ptr += "<pre>Ambient temperature [C] : " + String(ambient_temp) + "</pre>\n";
+    ptr += "<pre>Water temperature   [C] : " + String(water_temp) + "</pre>\n";
+    ptr += "</div>\n";
+    ptr += "</body>\n";
+    ptr += "</html>\n";
+    ptr += "<script>\n";
+    ptr += "var today = new Date();\n";
+    ptr += "var date = today.getFullYear() + '/' + (today.getMonth()+1) + '/' + today.getDate();\n";
+    ptr += "var time = today.getHours()    + ':' + today.getMinutes()   + ':' + today.getSeconds();\n";
+    ptr += "const para = document.createElement(\"pre\");\n";
+    ptr += "const node = document.createTextNode(\"Timestamp               : \" + date + \" \" + time);\n";
+    ptr += "para.appendChild(node);\n";
+    ptr += "document.getElementById(\"div1\").appendChild(para);\n";
+    ptr += "</script>\n";
+//    Serial.println(ptr);
+    return ptr;
 }
 
 void writeEEPROM(int offset, char * str, size_t len) {
@@ -111,11 +126,28 @@ void cmd_password(SerialCommands* sender){
     reconnect_wifi();
 }
 
+void cmd_status(SerialCommands* sender){
+	//Do not use Serial.Print!
+	//Use sender->GetSerial this allows sharing the callback method with multiple Serial Ports
+    sender->GetSerial()->print("ssid: ");
+    sender->GetSerial()->println(ssid);
+    sender->GetSerial()->print("password: ");
+    sender->GetSerial()->println(password);
+    sender->GetSerial()->print("IP address: ");
+    sender->GetSerial()->println(WiFi.localIP());
+    sender->GetSerial()->print("port: ");
+    sender->GetSerial()->println(port);
+    sender->GetSerial()->print("server_started: ");
+    sender->GetSerial()->println(server_started);
+    sender->GetSerial()->print("wifi_connected: ");
+    sender->GetSerial()->println(wifi_connected);
+}
+
 void cmd_unrecognized(SerialCommands* sender, const char* cmd){
 	sender->GetSerial()->print("ERROR: Unrecognized command [");
 	sender->GetSerial()->print(cmd);
 	sender->GetSerial()->println("]");
-    sender->GetSerial()->println("Commands:\nssid <ssid>\npassword <password>");
+    sender->GetSerial()->println("Available commands:\nssid <ssid>\npassword <password>\nstatus");
     Serial.println();
 }
 
@@ -156,6 +188,7 @@ void setup(){
     EEPROM.begin(sizeof(ssid)+sizeof(password));
     serial_commands_.AddCommand(&cmd_ssid_);
     serial_commands_.AddCommand(&cmd_password_);
+    serial_commands_.AddCommand(&cmd_status_);
  	serial_commands_.SetDefaultHandler(&cmd_unrecognized);
     readEEPROM(0,ssid,sizeof(ssid));
     readEEPROM(1,password,sizeof(password));
@@ -174,7 +207,8 @@ void loop(){
 	serial_commands_.ReadSerial();
     if(wifi_connected){
         server.begin();
-        Serial.println("HTTP server running on port 80");
+        Serial.print("HTTP server running on port ");
+        Serial.println(port);
         server_started = true;
         wifi_connected = false;
     }
@@ -185,10 +219,19 @@ void loop(){
         uint8_t len = sizeof(rh_buf);
         uint8_t from;
         if (manager.recvfromAck((uint8_t*)rh_buf, &len, &from)) {
-            Serial.print("got request from : 0x");
+            Serial.print("RH got request from: 0x");
             Serial.print(from, HEX);
             Serial.print(": ");
-            Serial.println((char*)rh_buf);
+            for(int i=0; i<len; i++){
+                int8_t rbyte = *(rh_buf+i);
+                if(i==0)
+                    water_temp = rbyte;
+                else if(i==1)
+                    ambient_temp = rbyte;
+                Serial.print(rbyte);
+                Serial.print(" ");
+            }
+            Serial.println();
         }
     }
 }
