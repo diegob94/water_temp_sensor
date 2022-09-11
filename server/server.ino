@@ -16,12 +16,12 @@ const int port = 80;
 bool server_started = false;
 bool wifi_connected = false;
 TaskHandle_t wifi_task_handle = NULL;
-int8_t water_temp = 30;
-int8_t ambient_temp = 20;
+float water_temp = 30;
+float ambient_temp = 20;
 char ssid[32];
 char password[32];
 char serial_command_buffer_[64];
-char rh_buf[64];
+char rh_buf[8];
 
 WebServer server(port);
 HardwareSerial SerialPort(2);
@@ -41,7 +41,7 @@ void handle_temp() {
     server.send(200, "text/html", SendHTML(ambient_temp,water_temp));
 }
 
-String SendHTML(int8_t ambient_temp, int8_t water_temp) {
+String SendHTML(float ambient_temp, float water_temp) {
     String ptr = "<!DOCTYPE html> <html>\n";
     ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
     ptr += "<title>Water temperature sensor</title>\n";
@@ -137,6 +137,10 @@ void cmd_status(SerialCommands* sender){
     sender->GetSerial()->println(WiFi.localIP());
     sender->GetSerial()->print("port: ");
     sender->GetSerial()->println(port);
+    sender->GetSerial()->print("water_temp: ");
+    sender->GetSerial()->println(water_temp);
+    sender->GetSerial()->print("ambient_temp: ");
+    sender->GetSerial()->println(ambient_temp);
     sender->GetSerial()->print("server_started: ");
     sender->GetSerial()->println(server_started);
     sender->GetSerial()->print("wifi_connected: ");
@@ -177,6 +181,19 @@ void reconnect_wifi(){
         vTaskDelete(wifi_task_handle);
     }
     xTaskCreate(connect_wifi,"TaskOne",10000,NULL,1,&wifi_task_handle);
+}
+
+float float_from_bytes(uint8_t b3, uint8_t b2, uint8_t b1, uint8_t b0){
+    union my_union {
+        float float_variable;
+        char bytes_array[4];
+    };
+    union my_union u;
+    u.bytes_array[0] = b0;
+    u.bytes_array[1] = b1;
+    u.bytes_array[2] = b2;
+    u.bytes_array[3] = b3;
+    return u.float_variable;
 }
 
 void setup(){
@@ -223,15 +240,14 @@ void loop(){
             Serial.print(from, HEX);
             Serial.print(": ");
             for(int i=0; i<len; i++){
-                int8_t rbyte = *(rh_buf+i);
-                if(i==0)
-                    water_temp = rbyte;
-                else if(i==1)
-                    ambient_temp = rbyte;
-                Serial.print(rbyte);
+                uint8_t rbyte = *(rh_buf+i);
+                Serial.print("0x");
+                Serial.print(rbyte,HEX);
                 Serial.print(" ");
             }
             Serial.println();
+            water_temp   = float_from_bytes(rh_buf[3],rh_buf[2],rh_buf[1],rh_buf[0]);
+            ambient_temp = float_from_bytes(rh_buf[7],rh_buf[6],rh_buf[5],rh_buf[4]);
         }
     }
 }
