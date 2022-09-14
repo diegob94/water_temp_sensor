@@ -16,8 +16,8 @@ const int port = 80;
 bool server_started = false;
 bool wifi_connected = false;
 TaskHandle_t wifi_task_handle = NULL;
-float water_temp = 30;
-float ambient_temp = 20;
+float water_temp = -9999;
+float ambient_temp = -9999;
 char ssid[32];
 char password[32];
 char serial_command_buffer_[64];
@@ -248,6 +248,10 @@ void loop(){
             Serial.println();
             water_temp   = float_from_bytes(rh_buf[3],rh_buf[2],rh_buf[1],rh_buf[0]);
             ambient_temp = float_from_bytes(rh_buf[7],rh_buf[6],rh_buf[5],rh_buf[4]);
+            Serial.print("water_temp: ");
+            Serial.println(water_temp);
+            Serial.print("ambient_temp: ");
+            Serial.println(ambient_temp);
         }
     }
 }

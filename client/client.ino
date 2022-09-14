@@ -8,8 +8,8 @@ const int rh_client_address = 2;
 
 RH_RF95<HardwareSerial> driver(Serial1);
 RHReliableDatagram manager(driver, rh_client_address);
-OneWire one_wire1(3);
-OneWire one_wire2(4);
+OneWire one_wire1(4);
+OneWire one_wire2(5);
 float water_temp = 0;
 float ambient_temp = 0;
 uint8_t buf[8];
@@ -80,7 +80,7 @@ void setup() {
     TXLED0;
     RXLED0;
     if (manager.init()) {
-        TXLED1;
+        TXLED0; // save 8mA
     } else {
         Serial.println("RH init failed");
     }
@@ -104,10 +104,11 @@ void loop() {
     RXLED1;
     delay(tx_time);
     RXLED0;
+    //driver.sleep();
     for(sleep_counter=0;sleep_counter < (sleep_time/(8*1000));sleep_counter++){
-        attachInterrupt(0, wakeUp, LOW);
+        //attachInterrupt(0, wakeUp, LOW);
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
-        detachInterrupt(0);
+        //detachInterrupt(0);
     }
 }
 
