@@ -1,4 +1,5 @@
 #include <OneWire.h>
+#include <LowPower.h>
 #include <RHReliableDatagram.h>
 #include <RH_RF95.h>
 
@@ -12,9 +13,10 @@ OneWire one_wire2(4);
 float water_temp = 0;
 float ambient_temp = 0;
 uint8_t buf[8];
+int sleep_counter = 0;
 
-const int period = 10000;
-const int led_time = 1000;
+const int sleep_time = 1000*8*2;
+const int tx_time = 200;
 
 bool getTemp(OneWire ds, float* temp){
   //returns the temperature from one DS18S20 in DEG Celsius
@@ -72,6 +74,8 @@ uint8_t float_get_byte(float x, int idx){
     return u.bytes_array[idx];
 }
 
+void wakeUp(){}
+
 void setup() {
     TXLED0;
     RXLED0;
@@ -98,8 +102,12 @@ void loop() {
         Serial.println("sendtoWait failed");
     }
     RXLED1;
-    delay(led_time);
+    delay(tx_time);
     RXLED0;
-    delay(period - led_time);
+    for(sleep_counter=0;sleep_counter < (sleep_time/(8*1000));sleep_counter++){
+        attachInterrupt(0, wakeUp, LOW);
+        LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+        detachInterrupt(0);
+    }
 }
 
