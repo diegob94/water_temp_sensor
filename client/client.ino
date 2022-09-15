@@ -10,13 +10,14 @@ RH_RF95<HardwareSerial> driver(Serial1);
 RHReliableDatagram manager(driver, rh_client_address);
 OneWire one_wire1(4);
 OneWire one_wire2(5);
+const int radio_power_sw = 6;
 float water_temp = 0;
 float ambient_temp = 0;
 uint8_t buf[8];
 int sleep_counter = 0;
 
-const int sleep_time = 1000*8*2;
-const int tx_time = 200;
+const int sleep_time = 1000*60*10;
+const int tx_time = 50;
 
 bool getTemp(OneWire ds, float* temp){
   //returns the temperature from one DS18S20 in DEG Celsius
@@ -75,13 +76,10 @@ uint8_t float_get_byte(float x, int idx){
 }
 
 void setup() {
+    pinMode(radio_power_sw,OUTPUT);
+    digitalWrite(radio_power_sw,LOW);
     TXLED0;
     RXLED0;
-    if (manager.init()) {
-        TXLED0; // save 8mA
-    } else {
-        Serial.println("RH init failed");
-    }
 }
 
 void loop() {
@@ -95,12 +93,17 @@ void loop() {
     buf[5] = float_get_byte(ambient_temp,1);
     buf[6] = float_get_byte(ambient_temp,2);
     buf[7] = float_get_byte(ambient_temp,3);
+    digitalWrite(radio_power_sw,HIGH);
+    delay(10); // wait radio power on
+    while(!manager.init()) {
+        Serial.println("RH init failed");
+        delay(100); //wait to retry
+    }
     if (!manager.sendtoWait(buf, sizeof(buf), rh_server_address)) {
         TXLED0;
         Serial.println("sendtoWait failed");
     }
-    driver.sleep();
-    delay(10); // wait for sleep mode
+    digitalWrite(radio_power_sw,LOW);
     RXLED1;
     delay(tx_time);
     RXLED0;
