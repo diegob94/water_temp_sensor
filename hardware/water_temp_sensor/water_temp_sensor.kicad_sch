@@ -97,16 +97,16 @@
       (reference "J1") (unit 1) (value "AVR-ISP-6") (footprint "")
     )
     (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/730418a0-a956-4ff6-9076-a1497bf0bb59"
-      (reference "Q?") (unit 1) (value "2N7000") (footprint "Package_TO_SOT_THT:TO-92_Inline")
-    )
-    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/0d577f38-871c-488b-8bf3-af11f1a005b9"
-      (reference "R1") (unit 1) (value "4.7K") (footprint "")
-    )
-    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/1233497a-8a41-4552-888b-2341f8c808fe"
-      (reference "R2") (unit 1) (value "4.7K") (footprint "")
+      (reference "Q1") (unit 1) (value "2N7000") (footprint "Package_TO_SOT_THT:TO-92_Inline")
     )
     (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/6b05ce80-4596-4d1a-a522-cdc9dbb63363"
-      (reference "R?") (unit 1) (value "100") (footprint "")
+      (reference "R1") (unit 1) (value "100") (footprint "")
+    )
+    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/0d577f38-871c-488b-8bf3-af11f1a005b9"
+      (reference "R2") (unit 1) (value "4.7K") (footprint "")
+    )
+    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/1233497a-8a41-4552-888b-2341f8c808fe"
+      (reference "R3") (unit 1) (value "4.7K") (footprint "")
     )
     (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/e095c2e2-ab67-4ea5-a819-d32046289b44"
       (reference "U1") (unit 1) (value "DS18B20") (footprint "Package_TO_SOT_THT:TO-92_Inline")
