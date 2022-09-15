@@ -74,8 +74,6 @@ uint8_t float_get_byte(float x, int idx){
     return u.bytes_array[idx];
 }
 
-void wakeUp(){}
-
 void setup() {
     TXLED0;
     RXLED0;
@@ -101,14 +99,13 @@ void loop() {
         TXLED0;
         Serial.println("sendtoWait failed");
     }
+    driver.sleep();
+    delay(10); // wait for sleep mode
     RXLED1;
     delay(tx_time);
     RXLED0;
-    //driver.sleep();
     for(sleep_counter=0;sleep_counter < (sleep_time/(8*1000));sleep_counter++){
-        //attachInterrupt(0, wakeUp, LOW);
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
-        //detachInterrupt(0);
     }
 }
 
