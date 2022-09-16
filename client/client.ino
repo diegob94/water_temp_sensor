@@ -2,6 +2,7 @@
 #include <LowPower.h>
 #include <RHReliableDatagram.h>
 #include <RH_RF95.h>
+#include <DallasTemperature.h>
 
 const int rh_server_address = 1;
 const int rh_client_address = 2;
@@ -10,6 +11,8 @@ RH_RF95<HardwareSerial> driver(Serial1);
 RHReliableDatagram manager(driver, rh_client_address);
 OneWire one_wire1(4);
 OneWire one_wire2(5);
+DallasTemperature sensor_water(&one_wire1);
+DallasTemperature sensor_ambient(&one_wire2);
 const int radio_power_sw = 6;
 float water_temp = 0;
 float ambient_temp = 0;
@@ -18,52 +21,6 @@ uint8_t buf[8];
 const int sleep_time = 60*10;
 const int sleep_cycles = sleep_time/8;
 const int tx_time = 50;
-
-bool getTemp(OneWire ds, float* temp){
-  //returns the temperature from one DS18S20 in DEG Celsius
-
-  byte data[12];
-  byte addr[8];
-
-  if ( !ds.search(addr)) {
-      //no more sensors on chain, reset search
-      ds.reset_search();
-      return false;
-  }
-
-  if ( OneWire::crc8( addr, 7) != addr[7]) {
-      Serial.println("CRC is not valid!");
-      return false;
-  }
-
-  if ( addr[0] != 0x10 && addr[0] != 0x28) {
-      Serial.print("Device is not recognized");
-      return false;
-  }
-
-  ds.reset();
-  ds.select(addr);
-  ds.write(0x44,1); // start conversion, with parasite power on at the end
-
-  byte present = ds.reset();
-  ds.select(addr);    
-  ds.write(0xBE); // Read Scratchpad
-
-  for (int i = 0; i < 9; i++) { // we need 9 bytes
-    data[i] = ds.read();
-  }
-
-  ds.reset_search();
-
-  byte MSB = data[1];
-  byte LSB = data[0];
-
-  float tempRead = ((MSB << 8) | LSB); //using two's compliment
-  float TemperatureSum = tempRead / 16;
-
-  *temp = TemperatureSum;
-  return true;
-}
 
 uint8_t float_get_byte(float x, int idx){
     union my_union {
@@ -80,11 +37,20 @@ void setup() {
     digitalWrite(radio_power_sw,LOW);
     TXLED0;
     RXLED0;
+    sensor_water.begin();
+    sensor_ambient.begin();
+    sensor_water.setResolution(9);
+    sensor_ambient.setResolution(9);
+    sensor_water.setWaitForConversion(false);
+    sensor_ambient.setWaitForConversion(false);
 }
 
 void loop() {
-    getTemp(one_wire1, &water_temp);
-    getTemp(one_wire2, &ambient_temp);
+    sensor_water.requestTemperatures();
+    sensor_ambient.requestTemperatures();
+    delay(100); // wait for 9 bit temperature conversion
+    water_temp = sensor_water.getTempCByIndex(0);
+    ambient_temp = sensor_ambient.getTempCByIndex(0);
     buf[0] = float_get_byte(water_temp,0);
     buf[1] = float_get_byte(water_temp,1);
     buf[2] = float_get_byte(water_temp,2);

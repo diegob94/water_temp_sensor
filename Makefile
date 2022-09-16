@@ -21,6 +21,7 @@ config:
 	arduino-cli lib install SerialCommands
 	arduino-cli lib install OneWire
 	arduino-cli lib install Low-Power
+	arduino-cli lib install DallasTemperature
 	arduino-cli lib install --git-url https://github.com/Seeed-Studio/Grove_LoRa_433MHz_and_915MHz_RF.git
 	arduino-cli board attach -b SparkFun:avr:promicro:cpu=16MHzatmega32U4 client
 	arduino-cli board attach -b esp32:esp32:nodemcu-32s server
