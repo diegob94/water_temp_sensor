@@ -252,6 +252,8 @@ void loop(){
             Serial.println(water_temp);
             Serial.print("ambient_temp: ");
             Serial.println(ambient_temp);
+            Serial.print("timestamp[ms]: ");
+            Serial.println(millis());
         }
     }
 }

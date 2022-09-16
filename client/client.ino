@@ -14,9 +14,9 @@ const int radio_power_sw = 6;
 float water_temp = 0;
 float ambient_temp = 0;
 uint8_t buf[8];
-int sleep_counter = 0;
 
-const int sleep_time = 1000*60*10;
+const int sleep_time = 60*10;
+const int sleep_cycles = sleep_time/8;
 const int tx_time = 50;
 
 bool getTemp(OneWire ds, float* temp){
@@ -103,11 +103,13 @@ void loop() {
         TXLED0;
         Serial.println("sendtoWait failed");
     }
+    Serial1.flush();
+    delay(1);
     digitalWrite(radio_power_sw,LOW);
     RXLED1;
     delay(tx_time);
     RXLED0;
-    for(sleep_counter=0;sleep_counter < (sleep_time/(8*1000));sleep_counter++){
+    for(int sleep_counter=0;sleep_counter < sleep_cycles;sleep_counter++){
         LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
     }
 }
