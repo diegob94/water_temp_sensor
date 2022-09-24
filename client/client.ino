@@ -62,12 +62,12 @@ void loop() {
     digitalWrite(radio_power_sw,HIGH);
     delay(10); // wait radio power on
     while(!manager.init()) {
-        Serial.println("RH init failed");
+        // init failed
         delay(100); //wait to retry
     }
+    driver.setTxPower(23, false);
     if (!manager.sendtoWait(buf, sizeof(buf), rh_server_address)) {
-        TXLED0;
-        Serial.println("sendtoWait failed");
+        // sendtowait failed
     }
     Serial1.flush();
     delay(1);
