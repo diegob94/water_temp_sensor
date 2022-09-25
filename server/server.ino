@@ -5,6 +5,8 @@
 #include <RHReliableDatagram.h>
 #include <RH_RF95.h>
 #include <HardwareSerial.h>
+#include <HTTPClient.h>
+#include "token.h" // #define UBIDOTS_TOKEN <TOKEN>; #define UBIDOTS_DEVICE <DEVICE>
 
 void cmd_ssid(SerialCommands*);
 void cmd_password(SerialCommands*);
@@ -15,6 +17,7 @@ const int rh_client_address = 2;
 const int port = 80;
 bool server_started = false;
 bool wifi_connected = false;
+bool start_server = false;
 TaskHandle_t wifi_task_handle = NULL;
 float water_temp = -9999;
 float ambient_temp = -9999;
@@ -31,6 +34,7 @@ SerialCommand cmd_ssid_("ssid", cmd_ssid);
 SerialCommand cmd_password_("password", cmd_password);
 SerialCommand cmd_status_("status", cmd_status);
 SerialCommands serial_commands_(&Serial, serial_command_buffer_, sizeof(serial_command_buffer_), "\n", " ");
+const char* serverName = "https://industrial.api.ubidots.com/api/v1.6/devices/"UBIDOTS_DEVICE"?token="UBIDOTS_TOKEN;
 
 void handle_NotFound() {
     server.send(404, "text/plain", "404 not found");
@@ -172,7 +176,6 @@ void connect_wifi(void * parameter){
     Serial.println("WiFi connected.");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
-    wifi_connected = true;
     vTaskDelete(NULL);
 }
 
@@ -194,6 +197,24 @@ float float_from_bytes(uint8_t b3, uint8_t b2, uint8_t b1, uint8_t b0){
     u.bytes_array[2] = b2;
     u.bytes_array[3] = b3;
     return u.float_variable;
+}
+
+int send_to_ubidots(){
+    Serial.println("Sending data to Ubidots");
+    WiFiClient client;
+    HTTPClient http;
+    http.begin(client, serverName);
+    http.addHeader("Content-Type", "application/json");
+    String json = String("{\"water-temperature\":") 
+        + String(water_temp) 
+        + String(", \"ambient-temperature\":") 
+        + String(ambient_temp) 
+        + String("}");
+    int httpResponseCode = http.POST(json.c_str());
+    http.end();
+    Serial.print("httpResponseCode: ");
+    Serial.println(httpResponseCode);
+    return httpResponseCode;
 }
 
 void setup(){
@@ -222,17 +243,24 @@ void setup(){
 
 void loop(){
 	serial_commands_.ReadSerial();
-    if(wifi_connected){
+    if(WiFi.status()== WL_CONNECTED){
+        wifi_connected = true;
+        start_server = true;
+    } else {
+        wifi_connected = false;
+    }
+    if(start_server){
         server.begin();
         Serial.print("HTTP server running on port ");
         Serial.println(port);
         server_started = true;
-        wifi_connected = false;
+        start_server = false;
     }
     if(server_started){
         server.handleClient();
     }
     if (manager.available()) {
+        Serial.println("RH available message");
         uint8_t len = sizeof(rh_buf);
         uint8_t from;
         if (manager.recvfromAck((uint8_t*)rh_buf, &len, &from)) {
@@ -252,9 +280,12 @@ void loop(){
             Serial.println(water_temp);
             Serial.print("ambient_temp: ");
             Serial.println(ambient_temp);
-            Serial.print("timestamp[ms]: ");
-            Serial.println(millis());
+            send_to_ubidots();
+        } else {
+            Serial.println("RH wrong message");
         }
+        Serial.print("timestamp[ms]: ");
+        Serial.println(millis());
     }
 }
 

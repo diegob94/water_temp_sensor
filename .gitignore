@@ -1,3 +1,5 @@
+server/token.h
+
 # Prerequisites
 *.d
 
