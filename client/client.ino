@@ -18,7 +18,7 @@ float water_temp = 0;
 float ambient_temp = 0;
 uint8_t buf[8];
 
-const int sleep_time = 60*10;
+const int sleep_time = 60*5;
 const int sleep_cycles = sleep_time/8;
 const int tx_time = 50;
 
