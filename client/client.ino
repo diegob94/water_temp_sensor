@@ -6,6 +6,7 @@
 
 const int rh_server_address = 1;
 const int rh_client_address = 2;
+const int temperature_resolution = 11; // 9 (0.5°C) 10 (0.25°C), 11 (0.125°C), or 12 (0.0625°C) bits
 
 RH_RF95<HardwareSerial> driver(Serial1);
 RHReliableDatagram manager(driver, rh_client_address);
@@ -39,8 +40,8 @@ void setup() {
     RXLED0;
     sensor_water.begin();
     sensor_ambient.begin();
-    sensor_water.setResolution(9);
-    sensor_ambient.setResolution(9);
+    sensor_water.setResolution(temperature_resolution);
+    sensor_ambient.setResolution(temperature_resolution);
     sensor_water.setWaitForConversion(false);
     sensor_ambient.setWaitForConversion(false);
 }
@@ -48,7 +49,7 @@ void setup() {
 void loop() {
     sensor_water.requestTemperatures();
     sensor_ambient.requestTemperatures();
-    delay(100); // wait for 9 bit temperature conversion
+    delay(sensor_ambient.millisToWaitForConversion(temperature_resolution));
     water_temp = sensor_water.getTempCByIndex(0);
     ambient_temp = sensor_ambient.getTempCByIndex(0);
     buf[0] = float_get_byte(water_temp,0);

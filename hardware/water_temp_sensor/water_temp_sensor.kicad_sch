@@ -81,6 +81,15 @@
     (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/5e7d944a-0f15-4254-bbd3-1a697bc0ce8d"
       (reference "#PWR014") (unit 1) (value "GND") (footprint "")
     )
+    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/5983871a-3b91-49dd-a64e-96499f7738bf"
+      (reference "#PWR?") (unit 1) (value "+BATT") (footprint "")
+    )
+    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/5c549b3f-f306-498b-8ae8-9bb3f10a1be7"
+      (reference "#PWR?") (unit 1) (value "GND") (footprint "")
+    )
+    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/f2e60db9-c134-467c-b016-785afb0fee2d"
+      (reference "#PWR?") (unit 1) (value "+BATT") (footprint "")
+    )
     (path "/12d0d91b-cb67-4b72-916a-65370bfcc939/9d5902d4-d9e4-4d8c-b5d4-8872111f0a5a"
       (reference "A1") (unit 1) (value "Grove_LoRa") (footprint "")
     )
@@ -92,6 +101,9 @@
     )
     (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/9ea5caa0-ed7e-4404-872a-68bba4cf248e"
       (reference "A4") (unit 1) (value "Sparkfun_pro_micro") (footprint "")
+    )
+    (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/a4766ec4-f880-4e40-867b-ecf58ec02aeb"
+      (reference "BT?") (unit 1) (value "9V battery") (footprint "")
     )
     (path "/b1badef0-4aa4-4598-a261-62064f02ff2a/909eb1b8-a130-4b14-bb56-11192b413ce7"
       (reference "J1") (unit 1) (value "AVR-ISP-6") (footprint "")
